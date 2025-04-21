@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import { Search, Clock, TrendingUp, Filter, X, Info } from 'lucide-react';
 
@@ -8,8 +8,6 @@ interface Book {
   author: string;
   cover: string;
   category: string;
-  popularity: number;
-  dateAdded: string;
   description: string;
 }
 
@@ -37,10 +35,7 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({ book, onClose }) 
           <p className="text-gray-600">by {book.author}</p>
           <p className="text-gray-600">Category: {book.category}</p>
           <p className="text-gray-700">{book.description}</p>
-          <div className="flex justify-between items-center text-sm text-gray-500">
-            <span>Added: {book.dateAdded}</span>
-            <span>Popularity: {book.popularity}%</span>
-          </div>
+        
         </div>
       </div>
     </div>
@@ -87,29 +82,21 @@ const AdminBookCatalog = () => {
     }
   ];
 
-  const books = [
-    {
-      id: 1,
-      title: 'The Psychology of Money',
-      author: 'Morgan Housel',
-      cover: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=200',
-      category: 'Finance',
-      popularity: 95,
-      dateAdded: '2024-03-01',
-      description: 'Doing well with money isn\'t necessarily about what you know. It\'s about how you behave. And behavior is hard to teach, even to really smart people. In The Psychology of Money, award-winning author Morgan Housel shares 19 short stories exploring the strange ways people think about money.'
-    },
-    {
-      id: 2,
-      title: 'Rich Dad Poor Dad',
-      author: 'Robert Kiyosaki',
-      cover: 'https://images.unsplash.com/photo-1601823984263-b87b59798b00?w=200',
-      category: 'Finance',
-      popularity: 92,
-      dateAdded: '2024-03-10',
-      description: 'Rich Dad Poor Dad is Robert\'s story of growing up with two dads — his real father and the father of his best friend, his rich dad — and the ways in which both men shaped his thoughts about money and investing.'
-    },
-    // Add more books here...
-  ];
+  const [books, setBooks] = useState<Book[]>([]);
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/books'); // Replace with your backend URL
+        const data = await response.json();
+        setBooks(data);
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      }
+    };
+  
+    fetchBooks();
+  }, []);
+  
 
   const filterBooks = () => {
     let filteredBooks = [...books];

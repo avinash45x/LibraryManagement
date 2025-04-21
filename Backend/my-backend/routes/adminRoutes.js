@@ -4,7 +4,7 @@
 // const Admin = require('../models/Admin'); // ✅ Correct model name
 
 // const router = express.Router();
-
+ 
 // router.post('/signup', async (req, res) => {
 //   try {
 //     const { firstName, lastName, email, adminId, password } = req.body;

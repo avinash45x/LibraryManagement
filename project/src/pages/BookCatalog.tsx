@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { Search, BookOpen, Clock, TrendingUp, Filter, X, ExternalLink } from 'lucide-react';
@@ -37,9 +37,32 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
     setStep('confirmation');
   };
 
-  const handleFinish = () => {
-    onClose();
-    navigate('/student/dashboard');
+  const handleFinish = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/books/borrow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          days: parseInt(borrowDays),
+          purpose: purpose
+        }),
+      });
+
+      if (response.ok) {
+        // Successfully borrowed the book
+        onClose();
+        navigate('/student/dashboard');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to borrow book: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error borrowing book:', error);
+      alert('An error occurred while borrowing the book. Please try again.');
+    }
   };
 
   return (
@@ -154,6 +177,7 @@ const BookCatalog = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [books, setBooks] = useState<Book[]>([]);
 
   const categories = [
     {
@@ -188,146 +212,37 @@ const BookCatalog = () => {
     }
   ];
 
-  const books = [
-    // Finance Books
-    {
-      id: 1,
-      title: 'The Psychology of Money',
-      author: 'Morgan Housel',
-      cover: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=200',
-      status: 'Available',
-      category: 'Finance',
-      popularity: 95,
-      dateAdded: '2024-03-01',
-      readLink: 'https://www.amazon.com/Psychology-Money-Timeless-Lessons-Happiness/dp/0857197681'
-    },
-    {
-      id: 2,
-      title: 'Rich Dad Poor Dad',
-      author: 'Robert Kiyosaki',
-      cover: 'https://images.unsplash.com/photo-1601823984263-b87b59798b00?w=200',
-      status: 'Available',
-      category: 'Finance',
-      popularity: 92,
-      dateAdded: '2024-03-10',
-      readLink: 'https://www.amazon.com/Rich-Dad-Poor-Teach-Middle/dp/1612680194'
-    },
-    // Self Development Books
-    {
-      id: 3,
-      title: 'Atomic Habits',
-      author: 'James Clear',
-      cover: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=200',
-      status: 'Available',
-      category: 'Self Development',
-      popularity: 98,
-      dateAdded: '2024-03-15',
-      readLink: 'https://www.amazon.com/Atomic-Habits-Proven-Build-Break/dp/0735211299'
-    },
-    {
-      id: 4,
-      title: 'Think and Grow Rich',
-      author: 'Napoleon Hill',
-      cover: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=200',
-      status: 'Available',
-      category: 'Self Development',
-      popularity: 90,
-      dateAdded: '2024-02-28',
-      readLink: 'https://www.amazon.com/Think-Grow-Rich-Napoleon-Hill/dp/0785833528'
-    },
-    // Productivity Books
-    {
-      id: 5,
-      title: 'Deep Work',
-      author: 'Cal Newport',
-      cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200',
-      status: 'Borrowed',
-      category: 'Productivity',
-      popularity: 88,
-      dateAdded: '2024-02-20',
-      readLink: 'https://www.amazon.com/Deep-Work-Focused-Success-Distracted/dp/1455586692'
-    },
-    {
-      id: 6,
-      title: 'Getting Things Done',
-      author: 'David Allen',
-      cover: 'https://images.unsplash.com/photo-1506784365847-bbad939e9335?w=200',
-      status: 'Available',
-      category: 'Productivity',
-      popularity: 85,
-      dateAdded: '2024-03-05',
-      readLink: 'https://www.amazon.com/Getting-Things-Done-Stress-Free-Productivity/dp/0143126563'
-    },
-    // Technology Books
-    {
-      id: 7,
-      title: 'Clean Code',
-      author: 'Robert C. Martin',
-      cover: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=200',
-      status: 'Available',
-      category: 'Technology',
-      popularity: 94,
-      dateAdded: '2024-03-12',
-      readLink: 'https://www.amazon.com/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882'
-    },
-    {
-      id: 8,
-      title: 'The Pragmatic Programmer',
-      author: 'David Thomas',
-      cover: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=200',
-      status: 'Available',
-      category: 'Technology',
-      popularity: 91,
-      dateAdded: '2024-03-08',
-      readLink: 'https://www.amazon.com/Pragmatic-Programmer-journey-mastery-Anniversary/dp/0135957052'
-    },
-    // Business Books
-    {
-      id: 9,
-      title: 'Zero to One',
-      author: 'Peter Thiel',
-      cover: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=200',
-      status: 'Available',
-      category: 'Business',
-      popularity: 93,
-      dateAdded: '2024-03-18',
-      readLink: 'https://www.amazon.com/Zero-One-Notes-Startups-Future/dp/0804139296'
-    },
-    {
-      id: 10,
-      title: 'Good to Great',
-      author: 'Jim Collins',
-      cover: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=200',
-      status: 'Available',
-      category: 'Business',
-      popularity: 89,
-      dateAdded: '2024-02-25',
-      readLink: 'https://www.amazon.com/Good-Great-Some-Companies-Others/dp/0066620996'
-    },
-    // Science Books
-    {
-      id: 11,
-      title: 'A Brief History of Time',
-      author: 'Stephen Hawking',
-      cover: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=200',
-      status: 'Available',
-      category: 'Science',
-      popularity: 96,
-      dateAdded: '2024-03-20',
-      readLink: 'https://www.amazon.com/Brief-History-Time-Stephen-Hawking/dp/0553380168'
-    },
-    {
-      id: 12,
-      title: 'The Selfish Gene',
-      author: 'Richard Dawkins',
-      cover: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=200',
-      status: 'Available',
-      category: 'Science',
-      popularity: 87,
-      dateAdded: '2024-03-03',
-      readLink: 'https://www.amazon.com/Selfish-Gene-Anniversary-Landmark-Science/dp/0198788606'
-    }
-  ];
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/books');
+        const data = await response.json();
+        setBooks(data);
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      }
+    };
+  
+    fetchBooks();
+  }, []);
+
+  // Add a listener to update book status when a book is borrowed
+  useEffect(() => {
+    const handleBorrowEvent = (event: any) => {
+      if (event.detail && event.detail.bookId) {
+        setBooks(prevBooks =>
+          prevBooks.map(book =>
+            book.id === event.detail.bookId ? { ...book, status: 'Borrowed' } : book
+          )
+        );
+      }
+    };
+
+    window.addEventListener('bookBorrowed', handleBorrowEvent);
+    return () => {
+      window.removeEventListener('bookBorrowed', handleBorrowEvent);
+    };
+  }, []);
 
   const filterBooks = () => {
     let filteredBooks = [...books];
@@ -360,7 +275,33 @@ const BookCatalog = () => {
   };
 
   const handleBorrow = (book: Book) => {
-    setSelectedBook(book);
+    if (book.status === 'Available') {
+      setSelectedBook(book);
+    } else {
+      alert('This book is not available for borrowing.');
+    }
+  };
+
+  const handleBookBorrowed = (bookId: number) => {
+    // Update the local state when a book is borrowed
+    setBooks(prevBooks =>
+      prevBooks.map(book =>
+        book.id === bookId ? { ...book, status: 'Borrowed' } : book
+      )
+    );
+    
+    // Dispatch a custom event
+    const borrowEvent = new CustomEvent('bookBorrowed', {
+      detail: { bookId }
+    });
+    window.dispatchEvent(borrowEvent);
+  };
+
+  const onDialogClosed = (bookId?: number) => {
+    if (bookId) {
+      handleBookBorrowed(bookId);
+    }
+    setSelectedBook(null);
   };
 
   return (
@@ -511,7 +452,7 @@ const BookCatalog = () => {
         {selectedBook && (
           <BorrowDialog
             book={selectedBook}
-            onClose={() => setSelectedBook(null)}
+            onClose={() => onDialogClosed()}
           />
         )}
       </div>
