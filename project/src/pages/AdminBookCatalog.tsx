@@ -9,6 +9,10 @@ interface Book {
   cover: string;
   category: string;
   description: string;
+  count: number;
+  status: 'available' | 'not available';
+  popularity: number;
+  dateAdded: string;
 }
 
 interface BookDetailsDialogProps {
@@ -188,27 +192,58 @@ const AdminBookCatalog = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filterBooks().map((book) => (
-            <div key={book.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <img src={book.cover} alt={book.title} className="w-full h-48 object-cover" />
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-800 text-lg mb-2">{book.title}</h3>
-                <p className="text-gray-600 mb-2">by {book.author}</p>
-                <p className="text-gray-600 mb-4">Category: {book.category}</p>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setSelectedBook(book)}
-                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                  >
-                    <Info className="w-4 h-4 mr-2" />
-                    Know More
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
+  {filterBooks().map((book) => (
+    <div
+      key={book.id}
+      className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-200 hover:-translate-y-1 transform"
+    >
+      <img
+        src={book.cover}
+        alt={book.title}
+        className="w-full h-52 object-cover transition-transform duration-300 hover:scale-105"
+      />
+      <div className="p-5">
+        <h3 className="font-bold text-lg text-gray-900 mb-1 truncate">{book.title}</h3>
+        <p className="text-sm text-gray-600 mb-1">by <span className="font-medium">{book.author}</span></p>
+        <p className="text-sm text-gray-500 mb-1">
+          <span className="text-gray-700 font-medium">Category:</span> {book.category}
+        </p>
+        <p className="text-sm text-gray-500 mb-3">
+          <span className="text-gray-700 font-medium">Count:</span> {book.count}
+        </p>
+
+        <div className="flex items-center justify-between mb-4">
+          <span
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
+              book.status === 'available'
+                ? 'bg-green-100 text-green-700 border-green-400'
+                : 'bg-red-100 text-red-700 border-red-400'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full mr-2 ${
+                book.status === 'available' ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            ></span>
+            {book.status.charAt(0).toUpperCase() + book.status.slice(1)}
+          </span>
         </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={() => setSelectedBook(book)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Info className="w-4 h-4" />
+            Know More
+          </button>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
+
 
         {/* Category Selection Modal */}
         {showCategoryModal && (

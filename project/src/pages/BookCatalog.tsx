@@ -14,11 +14,12 @@ interface Book {
   title: string;
   author: string;
   cover: string;
-  status: string;
+  status: 'available' | 'not available';
   category: string;
   popularity: number;
   dateAdded: string;
   readLink: string;
+  count: number;
 }
 
 const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
@@ -232,7 +233,7 @@ const BookCatalog = () => {
       if (event.detail && event.detail.bookId) {
         setBooks(prevBooks =>
           prevBooks.map(book =>
-            book.id === event.detail.bookId ? { ...book, status: 'Borrowed' } : book
+            book.id === event.detail.bookId ? { ...book, status: 'not available' } : book
           )
         );
       }
@@ -275,7 +276,7 @@ const BookCatalog = () => {
   };
 
   const handleBorrow = (book: Book) => {
-    if (book.status === 'Available') {
+    if (book.status === 'available') {
       setSelectedBook(book);
     } else {
       alert('This book is not available for borrowing.');
@@ -283,14 +284,12 @@ const BookCatalog = () => {
   };
 
   const handleBookBorrowed = (bookId: number) => {
-    // Update the local state when a book is borrowed
     setBooks(prevBooks =>
       prevBooks.map(book =>
-        book.id === bookId ? { ...book, status: 'Borrowed' } : book
+        book.id === bookId ? { ...book, status: 'not available' } : book
       )
     );
     
-    // Dispatch a custom event
     const borrowEvent = new CustomEvent('bookBorrowed', {
       detail: { bookId }
     });
@@ -371,10 +370,13 @@ const BookCatalog = () => {
               <div className="p-4">
                 <h3 className="font-semibold text-gray-800 text-lg mb-2">{book.title}</h3>
                 <p className="text-gray-600 mb-2">by {book.author}</p>
-                <p className="text-gray-600 mb-4">Category: {book.category}</p>
+                <p className="text-gray-600 mb-2">Category: {book.category}</p>
+                <p className="text-gray-600 mb-2">Count: {book.count}</p>
                 <div className="flex items-center justify-between mb-4">
                   <span className={`px-3 py-1 rounded-full text-sm ${
-                    book.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    book.status === 'available' 
+                      ? 'bg-green-100 text-green-800 border border-green-500' 
+                      : 'bg-red-100 text-red-800 border border-red-500'
                   }`}>
                     {book.status}
                   </span>
@@ -388,17 +390,17 @@ const BookCatalog = () => {
                     Read
                   </a>
                 </div>
-                <div className="flex justify-end space-x-2">
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleBorrow(book)}
                     className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                    disabled={book.status !== 'Available'}
+                    disabled={book.status !== 'available'}
                   >
                     Borrow
                   </button>
                   <button
                     className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 transition-colors"
-                    disabled={book.status !== 'Available'}
+                    disabled={book.status !== 'available'}
                   >
                     Reserve
                   </button>

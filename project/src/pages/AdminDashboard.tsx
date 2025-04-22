@@ -1,22 +1,65 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Search, BookOpen, Users, Library } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 
+interface DashboardData {
+  totalBooks: number;
+  recentActivities: {
+    action: string;
+    details: string;
+    time: string;
+  }[];
+}
+
 const AdminDashboard = () => {
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    totalBooks: 0,
+    recentActivities: []
+  });
+  const [searchQuery, setSearchQuery] = useState('');
   const currentDate = format(new Date(), 'MMMM d, yyyy');
   const currentTime = format(new Date(), 'h:mm a');
 
-  const cards = [
-    { title: 'Total Books', count: 120, icon: BookOpen, color: 'bg-blue-500' },
-    { title: 'Active Users', count: 45, icon: Users, color: 'bg-green-500' },
-    { title: 'Books Borrowed', count: 28, icon: Library, color: 'bg-purple-500' },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/dashboard');
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
 
-  const recentActivities = [
-    { action: 'Book Added', details: 'Clean Code by Robert C. Martin', time: '2 hours ago' },
-    { action: 'Book Updated', details: 'Deep Work by Cal Newport', time: '3 hours ago' },
-    { action: 'Book Deleted', details: 'The Lean Startup', time: '5 hours ago' },
+    fetchDashboardData();
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const cards = [
+    { 
+      title: 'Total Books', 
+      count: dashboardData.totalBooks, 
+      icon: BookOpen, 
+      color: 'bg-blue-500' 
+    },
+    { 
+      title: 'Active Users', 
+      count: 45, // This would come from user management system
+      icon: Users, 
+      color: 'bg-green-500' 
+    },
+    { 
+      title: 'Books Borrowed', 
+      count: 28, // This would come from borrowing system
+      icon: Library, 
+      color: 'bg-purple-500' 
+    },
   ];
 
   return (
@@ -34,6 +77,8 @@ const AdminDashboard = () => {
             <input
               type="text"
               placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
             />
             <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
@@ -55,7 +100,7 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Activities</h2>
           <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
+            {dashboardData.recentActivities.map((activity, index) => (
               <div key={index} className="flex items-center justify-between border-b border-gray-200 pb-4 last:border-0">
                 <div>
                   <h3 className="font-semibold text-gray-800">{activity.action}</h3>
