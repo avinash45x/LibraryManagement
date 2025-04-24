@@ -141,12 +141,13 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
+// Updated route to populate bookId with full book details
 router.get('/userrequests/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const requests = await BookRequest.find({
       userId: userId
-    });
+    }).populate('bookId'); // This line is the key change
     res.json(requests);
   } catch (error) {
     console.error(error);
@@ -154,5 +155,4 @@ router.get('/userrequests/:userId', async (req, res) => {
   }
 });
 
-
-module.exports = router; 
+module.exports = router;

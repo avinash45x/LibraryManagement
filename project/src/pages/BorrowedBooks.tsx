@@ -6,7 +6,7 @@ interface BorrowedBook {
   id: string;
   title: string;
   author: string;
-  image: string;
+  cover: string;
   borrowDate: string;
   dueDate: string;
   status: string;
@@ -29,31 +29,25 @@ const BorrowedBooks = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch borrowed books');
         }
-        
+
         const data = await response.json();
-        console.log('Fetched data:', data); // Debug log
-        
+
         // Filter only approved requests and map to book format
         const approvedBooks = data
           .filter((request: any) => request.status === 'approved')
-          .map((request: any) => {
-            console.log('Processing request:', request); // Debug log
-            return {
-              id: request._id,
-              title: request.bookTitle,
-              author: request.bookId?.author || 'Unknown Author',
-              image: request.bookId?.image || '/default-book-cover.jpg',
-              borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
-              dueDate: new Date(new Date(request.requestDate).getTime() + request.borrowDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              status: request.status
-            };
-          });
-        
-        console.log('Approved books:', approvedBooks); // Debug log
+          .map((request: any) => ({
+            id: request._id,
+            title: request.bookTitle,
+            author: request.bookId?.author || 'Unknown Author',
+            cover: request.bookId?.cover || request.bookId?.image || '/default-book-cover.jpg',
+            borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
+            dueDate: new Date(new Date(request.requestDate).getTime() + request.borrowDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: request.status
+          }));
+
         setBorrowedBooks(approvedBooks);
         setError('');
       } catch (err: any) {
-        console.error('Error fetching books:', err); // Debug log
         setError(err.message);
         setBorrowedBooks([]);
       } finally {
@@ -96,36 +90,30 @@ const BorrowedBooks = () => {
           <BookOpen className="w-8 h-8 text-indigo-600 mr-2" />
           <h1 className="text-2xl font-bold text-gray-800">Borrowed Books</h1>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {borrowedBooks.map((book) => (
             <div key={book.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="h-48 bg-gray-200 flex items-center justify-center">
-                <img 
-                  src={book.image} 
-                  alt={book.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = '/default-book-cover.jpg';
-                  }}
-                />
-              </div>
+              <img
+                src={book.cover}
+                alt={book.title}
+                className="w-full h-48 object-cover"
+                onError={(e) => { e.currentTarget.src = '/default-book-cover.jpg'; }}
+              />
               <div className="p-4">
-                <h2 className="text-xl font-semibold mb-2">{book.title}</h2>
-                <p className="text-gray-600 mb-2">By {book.author}</p>
-                <div className="flex justify-between text-sm text-gray-500">
+                <h3 className="font-semibold text-gray-800 text-lg mb-2">{book.title}</h3>
+                <p className="text-gray-600 mb-2">by {book.author}</p>
+                <div className="flex justify-between text-sm text-gray-500 mb-2">
                   <span>Borrowed: {book.borrowDate}</span>
                   <span>Due: {book.dueDate}</span>
                 </div>
-                <div className="mt-2">
-                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                    Currently Borrowed
-                  </span>
-                </div>
+                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                  Currently Borrowed
+                </span>
               </div>
             </div>
           ))}
-          
+
           {borrowedBooks.length === 0 && (
             <div className="col-span-full text-center py-8">
               <p className="text-gray-500">No books currently borrowed</p>
@@ -137,4 +125,4 @@ const BorrowedBooks = () => {
   );
 };
 
-export default BorrowedBooks; 
+export default BorrowedBooks;
