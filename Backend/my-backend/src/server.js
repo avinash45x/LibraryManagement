@@ -5,8 +5,11 @@ require('dotenv').config();
 
 const studentRoutes = require('../routes/studentRoutes');
 const adminRoutes = require('../routes/adminRoutes');
+const requestRoutes = require('../routes/requestRoutes');
+const notificationRoutes = require('../routes/notificationRoutes');
 const Book = require('../models/Book');
 const Activity = require('../models/Activity');
+const BookRequest = require('../models/BookRequest');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,6 +18,8 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/student', studentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/requests', requestRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Get dashboard data
 app.get('/api/dashboard', async (req, res) => {
@@ -75,7 +80,6 @@ app.get('/api/books/title/:title', async (req, res) => {
     if (!book) {
       return res.status(404).json({ details: 'Book not found with the given title' });
     }
-    
     res.json(book);
   } catch (error) {
     console.error('Error fetching book:', error);
@@ -153,12 +157,14 @@ app.put('/api/books/title/:title', async (req, res) => {
       }
     });
 
-    // If count is being updated, ensure it's a number
+    // If count is being updated, ensure it's a number and update status accordingly
     if (updateFields.count !== undefined) {
       updateFields.count = parseInt(updateFields.count);
       if (isNaN(updateFields.count)) {
         return res.status(400).json({ details: 'Count must be a valid number' });
       }
+      // Update status based on count
+      updateFields.status = updateFields.count > 0 ? 'available' : 'not available';
     }
 
     const updated = await Book.findOneAndUpdate(
@@ -221,6 +227,16 @@ function formatTimeAgo(date) {
 // Root route
 app.get('/', (req, res) => {
   res.send("Hello");
+});
+
+// Get count of pending requests
+app.get('/api/requests/pending/count', async (req, res) => {
+  try {
+    const count = await BookRequest.countDocuments({ status: 'pending' });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch pending count' });
+  }
 });
 
 // Connect to MongoDB and start server

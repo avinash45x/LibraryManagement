@@ -61,8 +61,8 @@ const AdminBookManagement = () => {
         category: data.category,
         description: data.description,
         cover: data.cover,
-        count: data.count,
-        status: data.status
+        count: data.count || 0,
+        status: data.status || 'not available'
       });
       setShowConfirmDialog(true);
     } catch (error: any) {
@@ -101,8 +101,6 @@ const AdminBookManagement = () => {
         category: data.category,
         description: data.description,
         cover: data.cover,
-        count: data.count,
-        status: data.status
       });
     } catch (error: any) {
       console.error('Error fetching book:', error);
@@ -120,7 +118,7 @@ const AdminBookManagement = () => {
         try {
           const { title, author, category, description, cover, count } = bookData;
 
-          if (!title || !author || !category || !description || !cover || !count) {
+          if (!title || !author || !category || !description || !cover || count === undefined) {
             alert('Please fill in all fields.');
             return;
           }
@@ -136,7 +134,7 @@ const AdminBookManagement = () => {
               category: category.trim(),
               description: description.trim(),
               cover: cover.trim(),
-              count: count,
+              count: count
             }),
           });
 
@@ -145,8 +143,14 @@ const AdminBookManagement = () => {
             throw new Error(data.details || data.error || 'Failed to add book');
           }
 
+          // Dispatch book update event
+          const bookUpdateEvent = new CustomEvent('bookUpdated', {
+            detail: { book: data }
+          });
+          window.dispatchEvent(bookUpdateEvent);
+
           alert('Book added successfully!');
-          handleCancel(); // Clear the form after successful addition
+          handleCancel();
         } catch (error: any) {
           console.error('Error adding book:', error);
           alert('Failed to add book. ' + error.message);
@@ -157,7 +161,7 @@ const AdminBookManagement = () => {
         try {
           const { title, author, category, description, cover, count } = bookData;
 
-          if (!originalTitle || !title || !author || !category || !description || !cover || !count) {
+          if (!originalTitle || !title || !author || !category || !description || !cover || count === undefined) {
             alert('Please fill in all fields including book title.');
             return;
           }
@@ -175,7 +179,7 @@ const AdminBookManagement = () => {
             category: category.trim(),
             description: description.trim(),
             cover: cover.trim(),
-            count: count,
+            count: count
           };
 
           const response = await fetch(`http://localhost:5000/api/books/title/${encodeURIComponent(originalTitle)}`, {
@@ -191,11 +195,17 @@ const AdminBookManagement = () => {
             throw new Error(data.details || data.error || 'Failed to update book');
           }
 
+          // Dispatch book update event
+          const bookUpdateEvent = new CustomEvent('bookUpdated', {
+            detail: { book: data }
+          });
+          window.dispatchEvent(bookUpdateEvent);
+
           alert(title.trim() === originalTitle.trim() 
             ? 'Book updated successfully!' 
             : `Book updated successfully! Title changed from "${originalTitle}" to "${title}"`
           );
-          handleCancel(); // Clear the form after successful update
+          handleCancel();
         } catch (error: any) {
           console.error('Error updating book:', error);
           alert('Failed to update book. ' + error.message);
@@ -252,9 +262,7 @@ const AdminBookManagement = () => {
     'author',
     'category',
     'description',
-    'cover',
-    'count',
-    'status'
+    'cover'
   ];
 
   return (
@@ -523,8 +531,6 @@ const AdminBookManagement = () => {
                       <p className="mb-2"><span className="font-semibold">Author:</span> {selectedBook.author}</p>
                       <p className="mb-2"><span className="font-semibold">Category:</span> {selectedBook.category}</p>
                       <p className="mb-2"><span className="font-semibold">Description:</span> {selectedBook.description}</p>
-                      <p className="mb-2"><span className="font-semibold">Count:</span> {selectedBook.count}</p>
-                      <p className="mb-2"><span className="font-semibold">Status:</span> {selectedBook.status}</p>
                     </div>
                   </div>
                 </div>

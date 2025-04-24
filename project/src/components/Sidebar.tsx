@@ -1,9 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, User, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, BookOpen, User, HelpCircle, MessageSquare } from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const userId = localStorage.getItem('userId');
+
+  useEffect(() => {
+    if (userId) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [userId]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/notifications/user/${userId}/unread/count`);
+      const data = await response.json();
+      setUnreadCount(data.count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -12,6 +32,12 @@ const Sidebar = () => {
   const menuItems = [
     { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/book-catalog', icon: BookOpen, label: 'Book Catalog' },
+    { 
+      path: '/messages', 
+      icon: MessageSquare, 
+      label: 'Messages',
+      badge: unreadCount > 0 ? unreadCount : undefined
+    },
     { path: '/my-account', icon: User, label: 'My Account' },
     { path: '/help-support', icon: HelpCircle, label: 'Help & Support' },
   ];
@@ -34,6 +60,11 @@ const Sidebar = () => {
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

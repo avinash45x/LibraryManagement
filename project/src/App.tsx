@@ -50,6 +50,8 @@ import StudentDashboard from './pages/StudentDashboard';
 import BookCatalog from './pages/BookCatalog';
 import MyAccount from './pages/MyAccount';
 import HelpSupport from './pages/HelpSupport';
+import AdminMessages from './components/AdminMessages';
+import UserMessages from './components/UserMessages';
 
 function App() {
   return (
@@ -64,6 +66,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/book-catalog" element={<AdminBookCatalog />} />
         <Route path="/admin/book-management" element={<AdminBookManagement />} />
+        <Route path="/admin/messages" element={<AdminMessages />} />
 
         {/* Student Routes */}
         <Route path="/student/signup" element={<StudentSignup />} />
@@ -74,6 +77,7 @@ function App() {
         <Route path="/book-catalog" element={<BookCatalog />} />
         <Route path="/my-account" element={<MyAccount />} />
         <Route path="/help-support" element={<HelpSupport />} />
+        <Route path="/messages" element={<UserMessages />} />
 
         {/* Redirect unknown routes to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />

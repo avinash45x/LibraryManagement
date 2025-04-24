@@ -1,24 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import { BookOpen, Clock, AlertCircle } from 'lucide-react';
 
+interface BorrowHistory {
+  id: string;
+  title: string;
+  borrowDate: string;
+  dueDate: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 const MyAccount = () => {
-  const borrowingHistory = [
-    {
-      id: 1,
-      title: 'The Psychology of Money',
-      borrowDate: '2024-03-01',
-      dueDate: '2024-03-15',
-      status: 'Returned',
-    },
-    {
-      id: 2,
-      title: 'Deep Work',
-      borrowDate: '2024-03-10',
-      dueDate: '2024-03-24',
-      status: 'Borrowed',
-    },
-  ];
+  const [borrowingHistory, setBorrowingHistory] = useState<BorrowHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchBorrowHistory = async () => {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:5000/api/requests/user/${userId}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        
+        setBorrowingHistory(data.map((request: any) => ({
+          id: request._id,
+          title: request.bookTitle,
+          borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
+          dueDate: new Date(new Date(request.requestDate).getTime() + request.borrowDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: request.status
+        })));
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBorrowHistory();
+    // Refresh history every 30 seconds
+    const interval = setInterval(fetchBorrowHistory, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fines = [
     {
@@ -29,6 +52,9 @@ const MyAccount = () => {
       status: 'Unpaid',
     },
   ];
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -60,9 +86,11 @@ const MyAccount = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{item.dueDate}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                          item.status === 'Returned' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                          item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {item.status}
+                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                         </span>
                       </td>
                     </tr>

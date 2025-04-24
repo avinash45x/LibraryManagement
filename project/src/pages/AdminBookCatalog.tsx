@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
-import { Search, Clock, TrendingUp, Filter, X, Info } from 'lucide-react';
+import { Search, Clock, Filter, X, Info } from 'lucide-react';
 
 interface Book {
   id: number;
@@ -49,7 +49,7 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({ book, onClose }) 
 const AdminBookCatalog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'latest' | 'available' | 'unavailable'>('all');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
@@ -118,8 +118,10 @@ const AdminBookCatalog = () => {
     }
 
     switch (selectedFilter) {
-      case 'popularity':
-        return filteredBooks.sort((a, b) => b.popularity - a.popularity);
+      case 'available':
+        return filteredBooks.filter(book => book.status === 'available');
+      case 'unavailable':
+        return filteredBooks.filter(book => book.status === 'not available');
       case 'latest':
         return filteredBooks.sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime());
       default:
@@ -160,15 +162,27 @@ const AdminBookCatalog = () => {
             <Filter className="w-4 h-4 mr-2" />
             {selectedCategory || 'Select Category'}
           </button>
+
           <button
-            onClick={() => setSelectedFilter('popularity')}
+            onClick={() => setSelectedFilter('available')}
             className={`flex items-center px-4 py-2 rounded-lg ${
-              selectedFilter === 'popularity' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
+              selectedFilter === 'available' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
             } border border-gray-300 hover:bg-indigo-50 transition-colors`}
           >
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Popular
+            <Info className="w-4 h-4 mr-2" />
+            Available
           </button>
+
+          <button
+            onClick={() => setSelectedFilter('unavailable')}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              selectedFilter === 'unavailable' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
+            } border border-gray-300 hover:bg-indigo-50 transition-colors`}
+          >
+            <Info className="w-4 h-4 mr-2" />
+            Unavailable
+          </button>
+
           <button
             onClick={() => setSelectedFilter('latest')}
             className={`flex items-center px-4 py-2 rounded-lg ${
@@ -178,6 +192,7 @@ const AdminBookCatalog = () => {
             <Clock className="w-4 h-4 mr-2" />
             Latest
           </button>
+
           {(selectedFilter !== 'all' || selectedCategory) && (
             <button
               onClick={() => {

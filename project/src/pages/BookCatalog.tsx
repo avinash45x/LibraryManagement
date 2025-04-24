@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { Search, BookOpen, Clock, TrendingUp, Filter, X, ExternalLink } from 'lucide-react';
+import { Search, BookOpen, Clock, Filter, X, ExternalLink } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 
 interface BorrowDialogProps {
@@ -10,7 +10,8 @@ interface BorrowDialogProps {
 }
 
 interface Book {
-  id: number;
+  _id: string;
+  id?: number;
   title: string;
   author: string;
   cover: string;
@@ -24,45 +25,53 @@ interface Book {
 
 const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<'initial' | 'confirmation'>('initial');
   const [borrowDays, setBorrowDays] = useState('1');
   const [purpose, setPurpose] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const currentDate = new Date();
   const dueDate = addDays(currentDate, parseInt(borrowDays));
 
-  const handleProceed = () => {
-    if (!purpose.trim()) {
-      alert('Please enter the purpose of borrowing');
-      return;
-    }
-    setStep('confirmation');
-  };
-
-  const handleFinish = async () => {
+  const handleSendRequest = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/books/borrow', {
+      setIsSubmitting(true);
+
+      const requestData = {
+        bookId: book._id,
+        bookTitle: book.title,
+        borrowDays: parseInt(borrowDays),
+        purpose: purpose.trim() || 'No purpose specified'
+      };
+
+      console.log('Sending request data:', requestData);
+
+      const response = await fetch('http://localhost:5000/api/requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          bookId: book.id,
-          days: parseInt(borrowDays),
-          purpose: purpose
-        }),
+        body: JSON.stringify(requestData)
       });
 
-      if (response.ok) {
-        // Successfully borrowed the book
-        onClose();
-        navigate('/student/dashboard');
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to borrow book: ${errorData.message || 'Unknown error'}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Server response:', data);
+        throw new Error(data.message || 'Failed to send request');
       }
-    } catch (error) {
-      console.error('Error borrowing book:', error);
-      alert('An error occurred while borrowing the book. Please try again.');
+
+      if (data.success) {
+        onClose();
+        alert('Request sent successfully!');
+        navigate('/student/messages');
+      } else {
+        throw new Error(data.message || 'Failed to send request');
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert(error.message || 'Failed to send request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,94 +88,73 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
           </button>
         </div>
 
-        {step === 'initial' ? (
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">{book.title}</h3>
-              <p className="text-gray-600">by {book.author}</p>
-            </div>
-
-            <div>
-              <p className="text-gray-600 mb-2">
-                Current Date: {format(currentDate, 'MMMM d, yyyy')}
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="borrowDays" className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Days to Borrow
-              </label>
-              <select
-                id="borrowDays"
-                value={borrowDays}
-                onChange={(e) => setBorrowDays(e.target.value)}
-                className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {[...Array(10)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {i + 1} {i === 0 ? 'day' : 'days'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-1">
-                Purpose of Borrowing
-              </label>
-              <textarea
-                id="purpose"
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                rows={3}
-                className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Enter your purpose for borrowing this book..."
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleProceed}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                Proceed
-              </button>
-            </div>
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-lg mb-2">{book.title}</h3>
+            <p className="text-gray-600">by {book.author}</p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h3 className="font-semibold text-green-800 mb-2">Borrowing Confirmed!</h3>
-              <p className="text-green-700">
-                Due Date: {format(dueDate, 'MMMM d, yyyy')}
-              </p>
-              <p className="text-red-600 font-medium mt-2">
-                Fine per day in case of late submission: 30/-
-              </p>
-            </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleFinish}
-                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                Finish
-              </button>
-            </div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-gray-600 mb-2">
+              Current Date: {format(currentDate, 'MMMM d, yyyy')}
+            </p>
+            <p className="text-green-700">
+              Due Date: {format(dueDate, 'MMMM d, yyyy')}
+            </p>
+            <p className="text-red-600 font-medium mt-2">
+              Fine per day in case of late submission: 30/-
+            </p>
           </div>
-        )}
+
+          <div>
+            <label htmlFor="borrowDays" className="block text-sm font-medium text-gray-700 mb-1">
+              Number of Days to Borrow
+            </label>
+            <select
+              id="borrowDays"
+              value={borrowDays}
+              onChange={(e) => setBorrowDays(e.target.value)}
+              className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {[...Array(10)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1} {i === 0 ? 'day' : 'days'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-1">
+              Purpose of Borrowing
+            </label>
+            <textarea
+              id="purpose"
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              rows={3}
+              className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Enter your purpose for borrowing this book..."
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSendRequest}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed min-w-[120px]"
+            >
+              {isSubmitting ? 'Sending...' : 'Send Request'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -175,10 +163,11 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
 const BookCatalog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'latest' | 'available' | 'unavailable'>('all');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
+  const navigate = useNavigate();
 
   const categories = [
     {
@@ -217,7 +206,11 @@ const BookCatalog = () => {
     const fetchBooks = async () => {
       try {
         const response = await fetch('http://localhost:5000/api/books');
+        if (!response.ok) {
+          throw new Error('Failed to fetch books');
+        }
         const data = await response.json();
+        console.log('Fetched books:', data);
         setBooks(data);
       } catch (error) {
         console.error('Error fetching books:', error);
@@ -225,29 +218,33 @@ const BookCatalog = () => {
     };
   
     fetchBooks();
+    // Refresh books every 30 seconds to get latest updates
+    const interval = setInterval(fetchBooks, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Add a listener to update book status when a book is borrowed
   useEffect(() => {
-    const handleBorrowEvent = (event: any) => {
-      if (event.detail && event.detail.bookId) {
+    const handleBookUpdate = (event: any) => {
+      if (event.detail && event.detail.book) {
         setBooks(prevBooks =>
           prevBooks.map(book =>
-            book.id === event.detail.bookId ? { ...book, status: 'not available' } : book
+            book._id === event.detail.book._id ? event.detail.book : book
           )
         );
       }
     };
 
-    window.addEventListener('bookBorrowed', handleBorrowEvent);
+    window.addEventListener('bookUpdated', handleBookUpdate);
     return () => {
-      window.removeEventListener('bookBorrowed', handleBorrowEvent);
+      window.removeEventListener('bookUpdated', handleBookUpdate);
     };
   }, []);
 
   const filterBooks = () => {
     let filteredBooks = [...books];
 
+    // Apply search filter
     if (searchQuery) {
       filteredBooks = filteredBooks.filter(book =>
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -256,13 +253,17 @@ const BookCatalog = () => {
       );
     }
 
+    // Apply category filter
     if (selectedCategory) {
       filteredBooks = filteredBooks.filter(book => book.category === selectedCategory);
     }
 
+    // Apply status and sorting filters
     switch (selectedFilter) {
-      case 'popularity':
-        return filteredBooks.sort((a, b) => b.popularity - a.popularity);
+      case 'available':
+        return filteredBooks.filter(book => book.status === 'available');
+      case 'unavailable':
+        return filteredBooks.filter(book => book.status === 'not available');
       case 'latest':
         return filteredBooks.sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime());
       default:
@@ -276,17 +277,18 @@ const BookCatalog = () => {
   };
 
   const handleBorrow = (book: Book) => {
-    if (book.status === 'available') {
+    console.log('Borrowing book:', book);
+    if (book.status === 'available' && book.count > 0) {
       setSelectedBook(book);
     } else {
       alert('This book is not available for borrowing.');
     }
   };
 
-  const handleBookBorrowed = (bookId: number) => {
+  const handleBookBorrowed = (bookId: string) => {
     setBooks(prevBooks =>
       prevBooks.map(book =>
-        book.id === bookId ? { ...book, status: 'not available' } : book
+        book._id === bookId ? { ...book, status: 'not available' } : book
       )
     );
     
@@ -296,7 +298,7 @@ const BookCatalog = () => {
     window.dispatchEvent(borrowEvent);
   };
 
-  const onDialogClosed = (bookId?: number) => {
+  const onDialogClosed = (bookId?: string) => {
     if (bookId) {
       handleBookBorrowed(bookId);
     }
@@ -331,15 +333,27 @@ const BookCatalog = () => {
             <Filter className="w-4 h-4 mr-2" />
             {selectedCategory || 'Select Category'}
           </button>
+
           <button
-            onClick={() => setSelectedFilter('popularity')}
+            onClick={() => setSelectedFilter('available')}
             className={`flex items-center px-4 py-2 rounded-lg ${
-              selectedFilter === 'popularity' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
+              selectedFilter === 'available' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
             } border border-gray-300 hover:bg-indigo-50 transition-colors`}
           >
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Popular
+            <BookOpen className="w-4 h-4 mr-2" />
+            Available
           </button>
+
+          <button
+            onClick={() => setSelectedFilter('unavailable')}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              selectedFilter === 'unavailable' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
+            } border border-gray-300 hover:bg-indigo-50 transition-colors`}
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            Unavailable
+          </button>
+
           <button
             onClick={() => setSelectedFilter('latest')}
             className={`flex items-center px-4 py-2 rounded-lg ${
@@ -349,6 +363,7 @@ const BookCatalog = () => {
             <Clock className="w-4 h-4 mr-2" />
             Latest
           </button>
+
           {(selectedFilter !== 'all' || selectedCategory) && (
             <button
               onClick={() => {
@@ -365,7 +380,7 @@ const BookCatalog = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filterBooks().map((book) => (
-            <div key={book.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div key={book._id} className="bg-white rounded-lg shadow-md overflow-hidden">
               <img src={book.cover} alt={book.title} className="w-full h-48 object-cover" />
               <div className="p-4">
                 <h3 className="font-semibold text-gray-800 text-lg mb-2">{book.title}</h3>
@@ -392,15 +407,34 @@ const BookCatalog = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleBorrow(book)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                    disabled={book.status !== 'available'}
+                    onClick={() => {
+                      if (book.status !== 'available' || book.count <= 0) {
+                        alert('This book is not available for borrowing. Please check back later.');
+                        return;
+                      }
+                      handleBorrow(book);
+                    }}
+                    className={`px-4 py-2 rounded transition-colors ${
+                      book.status === 'available' && book.count > 0
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
                     Borrow
                   </button>
                   <button
-                    className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 transition-colors"
-                    disabled={book.status !== 'available'}
+                    onClick={() => {
+                      if (book.status !== 'available' || book.count <= 0) {
+                        alert('This book is not available for reserving. Please check back later.');
+                        return;
+                      }
+                      // Add reserve functionality here
+                    }}
+                    className={`px-4 py-2 border rounded transition-colors ${
+                      book.status === 'available' && book.count > 0
+                        ? 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
+                        : 'border-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
                     Reserve
                   </button>

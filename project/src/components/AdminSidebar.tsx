@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Settings, MessageSquare } from 'lucide-react';
 
 const AdminSidebar = () => {
   const location = useLocation();
+  const [pendingRequests, setPendingRequests] = useState(0);
+
+  useEffect(() => {
+    const fetchPendingRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/requests/pending/count');
+        const data = await response.json();
+        setPendingRequests(data.count);
+      } catch (error) {
+        console.error('Error fetching pending requests:', error);
+      }
+    };
+
+    fetchPendingRequests();
+    const interval = setInterval(fetchPendingRequests, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -13,6 +30,12 @@ const AdminSidebar = () => {
     { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/book-catalog', icon: BookOpen, label: 'Book Catalog' },
     { path: '/admin/book-management', icon: Settings, label: 'Book Management' },
+    { 
+      path: '/admin/messages', 
+      icon: MessageSquare, 
+      label: 'Messages',
+      badge: pendingRequests > 0 ? pendingRequests : undefined
+    },
   ];
 
   return (
@@ -33,6 +56,11 @@ const AdminSidebar = () => {
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}
