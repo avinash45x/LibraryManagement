@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, User, HelpCircle, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, BookOpen, User, HelpCircle, MessageSquare, BookCheck, Bell, LogOut } from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -32,6 +32,7 @@ const Sidebar = () => {
   const menuItems = [
     { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/book-catalog', icon: BookOpen, label: 'Book Catalog' },
+    { path: '/borrowed-books', icon: BookCheck, label: 'Borrowed Books' },
     { 
       path: '/messages', 
       icon: MessageSquare, 
@@ -39,7 +40,7 @@ const Sidebar = () => {
       badge: unreadCount > 0 ? unreadCount : undefined
     },
     { path: '/my-account', icon: User, label: 'My Account' },
-    { path: '/help-support', icon: HelpCircle, label: 'Help & Support' },
+    { path: '/help-support', icon: HelpCircle, label: 'Help & Support' }
   ];
 
   return (

@@ -18,12 +18,18 @@ const MyAccount = () => {
   useEffect(() => {
     const fetchBorrowHistory = async () => {
       try {
-        const userId = localStorage.getItem('userId');
-        const response = await fetch(`http://localhost:5000/api/requests/user/${userId}`);
+        const userId = localStorage.getItem('studentId');
+        const response = await fetch(`http://localhost:5000/api/requests/userrequests/${userId}`);
         const data = await response.json();
+        console.log(data);
         if (!response.ok) throw new Error(data.error);
         
-        setBorrowingHistory(data.map((request: any) => ({
+        // Sort by date, newest first and take only the 5 most recent
+        const sortedData = data
+          .sort((a: any, b: any) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime())
+          .slice(0, 5);
+        
+        setBorrowingHistory(sortedData.map((request: any) => ({
           id: request._id,
           title: request.bookTitle,
           borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
@@ -66,7 +72,7 @@ const MyAccount = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
               <BookOpen className="w-6 h-6 text-indigo-600 mr-2" />
-              <h2 className="text-xl font-semibold">Borrowing History</h2>
+              <h2 className="text-xl font-semibold">Recent Borrowing History</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full">
@@ -95,6 +101,13 @@ const MyAccount = () => {
                       </td>
                     </tr>
                   ))}
+                  {borrowingHistory.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                        No borrowing history found
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

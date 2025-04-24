@@ -11,7 +11,9 @@ interface BookRequest {
   borrowDays: number;
   purpose: string;
   status: 'pending' | 'approved' | 'rejected';
+  returnStatus?: 'pending' | 'returned' | 'overdue';
   requestDate: string;
+  returnDate?: string;
 }
 
 const AdminMessages = () => {
@@ -51,22 +53,31 @@ const AdminMessages = () => {
       setLoading(true);
       console.log(`Processing ${action} action for request ${requestId}`);
       
+      // Find the request before making the update
+      const request = requests.find(req => req._id === requestId);
+      if (!request) {
+        throw new Error('Request not found');
+      }
+
       const response = await fetch(`http://localhost:5000/api/requests/${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ status: action }),
+        body: JSON.stringify({ 
+          status: action,
+          userId: request.userId,
+          bookTitle: request.bookTitle,
+          returnDate: action === 'approved' ? 
+            new Date(Date.now() + (request.borrowDays * 24 * 60 * 60 * 1000)).toISOString() : 
+            undefined
+        }),
       });
 
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || `Failed to ${action} request`);
-      }
-
-      if (!data.success) {
         throw new Error(data.error || `Failed to ${action} request`);
       }
 
@@ -77,8 +88,36 @@ const AdminMessages = () => {
         )
       );
 
+      // Create notification for user
+      await fetch('http://localhost:5000/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: request.userId,
+          message: action === 'approved'
+            ? `Your request to borrow "${request.bookTitle}" has been approved! You can collect the book from the library. Please return it within ${request.borrowDays} days.`
+            : `Your request to borrow "${request.bookTitle}" has been rejected. Please contact the librarian for more information.`,
+          type: action === 'approved' ? 'success' : 'error'
+        })
+      });
+
+      // Dispatch custom event for real-time updates
+      const updateEvent = new CustomEvent('borrowRequestUpdate', {
+        detail: {
+          requestId,
+          userId: request.userId,
+          status: action,
+          bookTitle: request.bookTitle,
+          timestamp: new Date().toISOString()
+        }
+      });
+      window.dispatchEvent(updateEvent);
+
       // Show success message
-      alert(data.message || `Request ${action} successfully`);
+      alert(`Request ${action} successfully`);
 
     } catch (err: any) {
       console.error(`Error ${action} request:`, err);
@@ -90,12 +129,72 @@ const AdminMessages = () => {
     }
   };
 
+  const handleReturnAction = async (requestId: string, returnStatus: 'returned' | 'overdue') => {
+    try {
+      setLoading(true);
+      
+      const request = requests.find(req => req._id === requestId);
+      if (!request) {
+        throw new Error('Request not found');
+      }
+
+      const response = await fetch(`http://localhost:5000/api/requests/${requestId}/return`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          returnStatus,
+          userId: request.userId,
+          bookTitle: request.bookTitle
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to process return`);
+      }
+
+      setRequests(prevRequests => 
+        prevRequests.map(req => 
+          req._id === requestId ? { ...req, returnStatus } : req
+        )
+      );
+
+      await fetch('http://localhost:5000/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: request.userId,
+          message: returnStatus === 'returned'
+            ? `Thank you for returning "${request.bookTitle}". Your return has been processed successfully.`
+            : `The book "${request.bookTitle}" is overdue. Please return it as soon as possible to avoid penalties.`,
+          type: returnStatus === 'returned' ? 'success' : 'warning'
+        })
+      });
+
+      alert(`Return status updated to ${returnStatus}`);
+
+    } catch (err: any) {
+      console.error(`Error processing return:`, err);
+      alert(err.message || `Failed to process return. Please try again.`);
+    } finally {
+      setLoading(false);
+      fetchRequests();
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-gray-100">
       <AdminSidebar />
       <div className="ml-64 p-8">
         <div className="flex items-center justify-center h-full">
-          <div className="text-lg text-gray-600">Loading requests...</div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
       </div>
     </div>
@@ -116,7 +215,7 @@ const AdminMessages = () => {
     <div className="min-h-screen bg-gray-100">
       <AdminSidebar />
       <div className="ml-64 p-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-8">Borrow Requests</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-8">Book Requests</h1>
         <div className="space-y-4">
           {requests.length > 0 ? (
             requests.map((request) => (
@@ -125,8 +224,8 @@ const AdminMessages = () => {
                 className="bg-white rounded-lg shadow-md p-6"
               >
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">{request.bookTitle}</h2>
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold text-gray-900">{request.bookTitle}</h2>
                     <p className="text-gray-600">Requested by: {request.userName}</p>
                     <p className="text-gray-600">Email: {request.userEmail}</p>
                     <p className="text-gray-600">Borrow Days: {request.borrowDays}</p>
@@ -134,36 +233,72 @@ const AdminMessages = () => {
                     <p className="text-gray-600">
                       Request Date: {new Date(request.requestDate).toLocaleDateString()}
                     </p>
-                    <p className="text-gray-600">
-                      Status: <span className={`font-semibold ${
-                        request.status === 'pending' ? 'text-yellow-600' :
-                        request.status === 'approved' ? 'text-green-600' :
-                        'text-red-600'
-                      }`}>{request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
-                    </p>
-                  </div>
-                  {request.status === 'pending' && (
-                    <div className="space-x-2">
-                      <button
-                        onClick={() => handleRequestAction(request._id, 'approved')}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    {request.returnDate && (
+                      <p className="text-gray-600">
+                        Return Due: {new Date(request.returnDate).toLocaleDateString()}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}
                       >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleRequestAction(request._id, 'rejected')}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                      >
-                        Reject
-                      </button>
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      </span>
+                      {request.returnStatus && (
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                          ${request.returnStatus === 'returned' ? 'bg-blue-100 text-blue-800' :
+                            request.returnStatus === 'overdue' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {request.returnStatus.charAt(0).toUpperCase() + request.returnStatus.slice(1)}
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
+                  <div className="space-y-2">
+                    {request.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleRequestAction(request._id, 'approved')}
+                          className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleRequestAction(request._id, 'rejected')}
+                          className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {request.status === 'approved' && !request.returnStatus && (
+                      <>
+                        <button
+                          onClick={() => handleReturnAction(request._id, 'returned')}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                          Mark Returned
+                        </button>
+                        <button
+                          onClick={() => handleReturnAction(request._id, 'overdue')}
+                          className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
+                        >
+                          Impose Fine
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
           ) : (
             <div className="text-center text-gray-500 bg-white rounded-lg shadow-md p-8">
-              No borrow requests found.
+              No book requests found.
             </div>
           )}
         </div>

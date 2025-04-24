@@ -154,7 +154,9 @@ const StudentLogin = () => {
     try {
       const res = await axios.post('http://localhost:5000/api/student/login', formData);
       localStorage.setItem('studentToken', res.data.token);
-      localStorage.setItem('studentFirstName', res.data.student.firstName);  // <-- Save first name
+      localStorage.setItem('studentFirstName', res.data.student.firstName); 
+      localStorage.setItem('studentId',res.data.student._id ) 
+      localStorage.setItem('studentEmail',res.data.student.email ) // <-- Save first name
       navigate('/student/dashboard');
     } catch (err: any) {
       alert(err.response.data.message);

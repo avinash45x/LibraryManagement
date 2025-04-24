@@ -30,7 +30,7 @@ router.post('/', async (req, res) => {
     });
     await notification.save();
     res.status(201).json(notification);
-  } catch (error) {
+  } catch (error){
     res.status(400).json({ error: 'Failed to create notification' });
   }
 });

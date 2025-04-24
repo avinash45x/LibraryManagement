@@ -33,7 +33,7 @@ const AdminSidebar = () => {
     { 
       path: '/admin/messages', 
       icon: MessageSquare, 
-      label: 'Messages',
+      label: 'Notifications',
       badge: pendingRequests > 0 ? pendingRequests : undefined
     },
   ];

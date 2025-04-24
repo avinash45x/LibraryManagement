@@ -34,9 +34,12 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
   const handleSendRequest = async () => {
     try {
       setIsSubmitting(true);
-
+      console.log(localStorage.getItem('studentId'))
       const requestData = {
         bookId: book._id,
+        userId: localStorage.getItem('studentId'),
+        userName: localStorage.getItem('studentFirstName'),
+        userEmail: localStorage.getItem('studentEmail'),
         bookTitle: book.title,
         borrowDays: parseInt(borrowDays),
         purpose: purpose.trim() || 'No purpose specified'
@@ -54,7 +57,6 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
       });
 
       const data = await response.json();
-      
       if (!response.ok) {
         console.error('Server response:', data);
         throw new Error(data.message || 'Failed to send request');
@@ -395,15 +397,8 @@ const BookCatalog = () => {
                   }`}>
                     {book.status}
                   </span>
-                  <a
-                    href={book.readLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center text-indigo-600 hover:text-indigo-700"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Read
-                  </a>
+                  
+                  
                 </div>
                 <div className="flex gap-2">
                   <button

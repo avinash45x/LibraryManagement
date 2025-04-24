@@ -23,10 +23,10 @@ router.post('/', async (req, res) => {
     
     // Create new request with minimal required fields
     const newRequest = new BookRequest({
-      userId: 'default',
-      userName: 'Student',
-      userEmail: 'student@example.com',
+      userId: req.body.userId,
       bookId: req.body.bookId,
+      userName:req.body.userName,
+      userEmail:req.body.userEmail,
       bookTitle: req.body.bookTitle,
       borrowDays: req.body.borrowDays || 1,
       purpose: req.body.purpose || 'No purpose specified',
@@ -126,6 +126,7 @@ router.put('/:requestId', async (req, res) => {
   }
 });
 
+router.get
 // Get requests for a specific user
 router.get('/user/:userId', async (req, res) => {
   try {
@@ -139,5 +140,19 @@ router.get('/user/:userId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user requests' });
   }
 });
+
+router.get('/userrequests/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requests = await BookRequest.find({
+      userId: userId
+    });
+    res.json(requests);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 module.exports = router; 

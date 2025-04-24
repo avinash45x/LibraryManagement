@@ -34,6 +34,7 @@
 // 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import BorrowedBooks from './pages/BorrowedBooks';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin';
@@ -78,6 +79,9 @@ function App() {
         <Route path="/my-account" element={<MyAccount />} />
         <Route path="/help-support" element={<HelpSupport />} />
         <Route path="/messages" element={<UserMessages />} />
+
+        {/* New route for BorrowedBooks */}
+        <Route path="/borrowed-books" element={<BorrowedBooks />} />
 
         {/* Redirect unknown routes to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
