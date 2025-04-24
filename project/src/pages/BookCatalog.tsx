@@ -225,23 +225,33 @@ const BookCatalog = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Add a listener to update book status when a book is borrowed
-  useEffect(() => {
-    const handleBookUpdate = (event: any) => {
-      if (event.detail && event.detail.book) {
-        setBooks(prevBooks =>
-          prevBooks.map(book =>
-            book._id === event.detail.book._id ? event.detail.book : book
-          )
-        );
-      }
-    };
+  // Add a listener to update book status when a book is borrowed or returned
+  // Add a listener to update book status when a book is borrowed or returned
+useEffect(() => {
+  const handleBookUpdate = (event: any) => {
+    if (event.detail && event.detail.book) {
+      setBooks(prevBooks =>
+        prevBooks.map(book =>
+          book._id === event.detail.book._id ? event.detail.book : book
+        )
+      );
+    } else if (event.detail && event.detail.bookId && event.detail.action === 'return') {
+      // Update book status when it's marked as returned
+      setBooks(prevBooks =>
+        prevBooks.map(book =>
+          book._id === event.detail.bookId 
+            ? { ...book, status: 'available', count: book.count + 1 } 
+            : book
+        )
+      );
+    }
+  };
 
-    window.addEventListener('bookUpdated', handleBookUpdate);
-    return () => {
-      window.removeEventListener('bookUpdated', handleBookUpdate);
-    };
-  }, []);
+  window.addEventListener('bookUpdated', handleBookUpdate);
+  return () => {
+    window.removeEventListener('bookUpdated', handleBookUpdate);
+  };
+}, []);
 
   const filterBooks = () => {
     let filteredBooks = [...books];

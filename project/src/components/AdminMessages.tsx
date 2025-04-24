@@ -137,7 +137,7 @@ const AdminMessages = () => {
       if (!request) {
         throw new Error('Request not found');
       }
-
+  
       const response = await fetch(`http://localhost:5000/api/requests/${requestId}/return`, {
         method: 'PUT',
         headers: {
@@ -150,19 +150,20 @@ const AdminMessages = () => {
           bookTitle: request.bookTitle
         }),
       });
-
+  
       const data = await response.json();
       
       if (!response.ok) {
         throw new Error(data.error || `Failed to process return`);
       }
-
+  
+      // Update local state
       setRequests(prevRequests => 
         prevRequests.map(req => 
           req._id === requestId ? { ...req, returnStatus } : req
         )
       );
-
+  
       await fetch('http://localhost:5000/api/notifications', {
         method: 'POST',
         headers: {
@@ -177,9 +178,32 @@ const AdminMessages = () => {
           type: returnStatus === 'returned' ? 'success' : 'warning'
         })
       });
-
+  
+      // Dispatch events for real-time updates when book is returned
+      if (returnStatus === 'returned') {
+        // Notify BookCatalog and AdminBookCatalog
+        const bookUpdateEvent = new CustomEvent('bookUpdated', {
+          detail: {
+            bookId: request.bookId,
+            status: 'available',
+            action: 'return'
+          }
+        });
+        window.dispatchEvent(bookUpdateEvent);
+        
+        // Notify BorrowedBooks component
+        const borrowedUpdateEvent = new CustomEvent('borrowedBooksUpdate', {
+          detail: {
+            requestId: request._id,
+            userId: request.userId,
+            returnStatus
+          }
+        });
+        window.dispatchEvent(borrowedUpdateEvent);
+      }
+  
       alert(`Return status updated to ${returnStatus}`);
-
+  
     } catch (err: any) {
       console.error(`Error processing return:`, err);
       alert(err.message || `Failed to process return. Please try again.`);
@@ -188,6 +212,7 @@ const AdminMessages = () => {
       fetchRequests();
     }
   };
+  
 
   if (loading) return (
     <div className="min-h-screen bg-gray-100">
@@ -307,4 +332,4 @@ const AdminMessages = () => {
   );
 };
 
-export default AdminMessages; 
+export default AdminMessages;

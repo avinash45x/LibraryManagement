@@ -10,12 +10,54 @@ interface BorrowedBook {
   borrowDate: string;
   dueDate: string;
   status: string;
+  returnStatus?: string;
 }
 
 const BorrowedBooks = () => {
   const [borrowedBooks, setBorrowedBooks] = useState<BorrowedBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const fetchBorrowedBooks = async () => {
+    try {
+      const userId = localStorage.getItem('studentId');
+      if (!userId) {
+        throw new Error('User not logged in');
+      }
+
+      const response = await fetch(`http://localhost:5000/api/requests/userrequests/${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch borrowed books');
+      }
+
+      const data = await response.json();
+
+      // Filter only approved requests AND not returned books
+      const approvedBooks = data
+        .filter((request: any) => 
+          request.status === 'approved' && 
+          request.returnStatus !== 'returned' // Exclude returned books
+        )
+        .map((request: any) => ({
+          id: request._id,
+          title: request.bookTitle,
+          author: request.bookId?.author || 'Unknown Author',
+          cover: request.bookId?.cover || request.bookId?.image || '/default-book-cover.jpg',
+          borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
+          dueDate: new Date(new Date(request.requestDate).getTime() + request.borrowDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: request.status,
+          returnStatus: request.returnStatus
+        }));
+
+      setBorrowedBooks(approvedBooks);
+      setError('');
+    } catch (err: any) {
+      setError(err.message);
+      setBorrowedBooks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchBorrowedBooks = async () => {
@@ -24,17 +66,20 @@ const BorrowedBooks = () => {
         if (!userId) {
           throw new Error('User not logged in');
         }
-
+  
         const response = await fetch(`http://localhost:5000/api/requests/userrequests/${userId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch borrowed books');
         }
-
+  
         const data = await response.json();
-
-        // Filter only approved requests and map to book format
+  
+        // Filter only approved requests AND not returned books
         const approvedBooks = data
-          .filter((request: any) => request.status === 'approved')
+          .filter((request: any) => 
+            request.status === 'approved' && 
+            request.returnStatus !== 'returned' // Exclude returned books
+          )
           .map((request: any) => ({
             id: request._id,
             title: request.bookTitle,
@@ -42,9 +87,10 @@ const BorrowedBooks = () => {
             cover: request.bookId?.cover || request.bookId?.image || '/default-book-cover.jpg',
             borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
             dueDate: new Date(new Date(request.requestDate).getTime() + request.borrowDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            status: request.status
+            status: request.status,
+            returnStatus: request.returnStatus
           }));
-
+  
         setBorrowedBooks(approvedBooks);
         setError('');
       } catch (err: any) {
@@ -54,11 +100,29 @@ const BorrowedBooks = () => {
         setLoading(false);
       }
     };
-
+  
     fetchBorrowedBooks();
+    
+    // Listen for book return updates
+    const handleBorrowedUpdate = (event: any) => {
+      if (event.detail && 
+          event.detail.userId === localStorage.getItem('studentId') && 
+          event.detail.returnStatus === 'returned') {
+        setBorrowedBooks(prevBooks => 
+          prevBooks.filter(book => book.id !== event.detail.requestId)
+        );
+      }
+    };
+    
+    window.addEventListener('borrowedBooksUpdate', handleBorrowedUpdate);
+    
     const interval = setInterval(fetchBorrowedBooks, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('borrowedBooksUpdate', handleBorrowedUpdate);
+    };
   }, []);
+  
 
   if (loading) return (
     <div className="min-h-screen bg-gray-100">

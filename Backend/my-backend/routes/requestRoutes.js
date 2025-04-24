@@ -19,24 +19,18 @@ router.get('/', async (req, res) => {
 // Create a new book request
 router.post('/', async (req, res) => {
   try {
-    console.log('Received request body:', req.body);
-    
-    // Create new request with minimal required fields
     const newRequest = new BookRequest({
       userId: req.body.userId,
       bookId: req.body.bookId,
-      userName:req.body.userName,
-      userEmail:req.body.userEmail,
+      userName: req.body.userName,
+      userEmail: req.body.userEmail,
       bookTitle: req.body.bookTitle,
       borrowDays: req.body.borrowDays || 1,
       purpose: req.body.purpose || 'No purpose specified',
       status: 'pending',
       requestDate: new Date()
     });
-
-    console.log('Attempting to save request:', newRequest);
     const savedRequest = await newRequest.save();
-    console.log('Request saved successfully:', savedRequest);
 
     // Create notification for admin
     const notification = new Notification({
@@ -52,7 +46,6 @@ router.post('/', async (req, res) => {
       request: savedRequest
     });
   } catch (error) {
-    console.error('Error in request creation:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create request',
@@ -66,8 +59,6 @@ router.put('/:requestId', async (req, res) => {
   try {
     const { requestId } = req.params;
     const { status } = req.body;
-
-    console.log(`Updating request ${requestId} to status: ${status}`);
 
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({
@@ -118,7 +109,6 @@ router.put('/:requestId', async (req, res) => {
       request: updatedRequest
     });
   } catch (error) {
-    console.error('Error updating request:', error);
     res.status(500).json({
       success: false,
       error: error.message || `Failed to update request`
@@ -126,33 +116,104 @@ router.put('/:requestId', async (req, res) => {
   }
 });
 
-router.get
+
+// Mark a book as returned or overdue
+// Mark a book as returned or overdue
+router.put('/:requestId/return', async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { returnStatus, userId, bookTitle } = req.body;
+
+    // Find the request
+    const request = await BookRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ success: false, error: 'Request not found' });
+    }
+
+    // If returned, increase book count and delete the request
+    if (returnStatus === 'returned') {
+      const book = await Book.findById(request.bookId);
+      if (book) {
+        book.count += 1;
+        book.status = 'available';
+        await book.save();
+      }
+      
+      // Create notification for user
+      const notification = new Notification({
+        userId: request.userId,
+        message: `Your book "${request.bookTitle}" has been returned successfully.`,
+        type: 'success',
+        read: false,
+        createdAt: new Date()
+      });
+      await notification.save();
+      
+      // Log this activity
+      await Activity.create({
+        action: 'return',
+        bookId: request.bookId,
+        userId: request.userId,
+        details: `Book "${request.bookTitle}" marked as returned by admin`,
+        timestamp: new Date()
+      });
+      
+      // Delete the request instead of updating it
+      await BookRequest.findByIdAndDelete(requestId);
+    } else if (returnStatus === 'overdue') {
+      // Just update the status for overdue books
+      request.returnStatus = returnStatus;
+      await request.save();
+      
+      // Create notification for user
+      const notification = new Notification({
+        userId: request.userId,
+        message: `The book "${request.bookTitle}" is overdue. Please return it as soon as possible to avoid penalties.`,
+        type: 'warning',
+        read: false,
+        createdAt: new Date()
+      });
+      await notification.save();
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Book marked as ${returnStatus} successfully.`,
+      bookId: request.bookId // Include bookId in response for frontend updates
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+
+
 // Get requests for a specific user
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log('Fetching requests for user:', userId);
     const requests = await BookRequest.find({ userId }).sort({ requestDate: -1 });
-    console.log('Found requests:', requests);
     res.json(requests);
   } catch (error) {
-    console.error('Error fetching user requests:', error);
     res.status(500).json({ error: 'Failed to fetch user requests' });
   }
 });
 
-// Updated route to populate bookId with full book details
+// Get requests for a specific user, fully populated
 router.get('/userrequests/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const requests = await BookRequest.find({
       userId: userId
-    }).populate('bookId'); // This line is the key change
+    }).populate('bookId');
     res.json(requests);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+
 
 module.exports = router;
