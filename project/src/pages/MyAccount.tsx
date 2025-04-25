@@ -116,44 +116,40 @@ const MyAccount = () => {
               <h2 className="text-xl font-semibold">Recent Reserve History</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reserve Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reserve Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {borrowingHistory.filter(item => item.purpose === "reserve").map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">{item.title}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{item.dueDate}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {borrowingHistory.map((item) => (
-                    <tr key={item.id}>
-                      {item.purpose == "reserve" && 
-<div>
+                ))}
+                {borrowingHistory.filter(item => item.purpose === "reserve").length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
+                      No borrowing history found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
 
-                      <td className="px-6 py-4 whitespace-nowrap">{item.title}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{item.dueDate}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          item.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          item.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                        </span>
-                      </td>
-                            </div>
-                        }
-                    </tr>
-                  ))}
-                  {borrowingHistory.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
-                        No borrowing history found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
             </div>
           </div>
 

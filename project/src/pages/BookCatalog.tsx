@@ -246,7 +246,7 @@ const ReserveDialog: React.FC = ({ book, onClose } :any) => {
 const BookCatalog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'latest' | 'available' | 'unavailable'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'available' | 'unavailable'>('all');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -358,8 +358,6 @@ useEffect(() => {
         return filteredBooks.filter(book => book.status === 'available');
       case 'unavailable':
         return filteredBooks.filter(book => book.status === 'not available');
-      case 'latest':
-        return filteredBooks.sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime());
       default:
         return filteredBooks;
     }
@@ -461,15 +459,7 @@ useEffect(() => {
             Unavailable
           </button>
 
-          <button
-            onClick={() => setSelectedFilter('latest')}
-            className={`flex items-center px-4 py-2 rounded-lg ${
-              selectedFilter === 'latest' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'
-            } border border-gray-300 hover:bg-indigo-50 transition-colors`}
-          >
-            <Clock className="w-4 h-4 mr-2" />
-            Latest
-          </button>
+          
 
           {(selectedFilter !== 'all' || selectedCategory) && (
             <button

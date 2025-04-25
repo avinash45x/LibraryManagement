@@ -33,12 +33,7 @@ const Sidebar = () => {
     { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/book-catalog', icon: BookOpen, label: 'Book Catalog' },
     { path: '/borrowed-books', icon: BookCheck, label: 'Borrowed Books' },
-    { 
-      path: '/messages', 
-      icon: MessageSquare, 
-      label: 'Messages',
-      badge: unreadCount > 0 ? unreadCount : undefined
-    },
+  
     { path: '/my-account', icon: User, label: 'My Account' },
     { path: '/help-support', icon: HelpCircle, label: 'Help & Support' }
   ];
@@ -61,11 +56,7 @@ const Sidebar = () => {
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
+                  
                 </Link>
               </li>
             ))}

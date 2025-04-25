@@ -40,34 +40,38 @@ const AdminSidebar = () => {
 
   return (
     <div className="h-screen w-64 bg-indigo-800 text-white fixed left-0 top-0">
-      <div className="p-4">
-        <h2 className="text-xl font-bold mb-8">Library Admin</h2>
-        <nav>
-          <ul className="space-y-2">
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${
-                    isActive(item.path)
-                      ? 'bg-indigo-700 text-white'
-                      : 'text-indigo-100 hover:bg-indigo-700'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
+  <div className="p-4">
+    <div className="flex items-center space-x-2 mb-6">
+      <BookOpen className="h-8 w-8 text-white" />
+      <span className="text-xl font-bold text-white">UniLibrary</span>
     </div>
+    <nav>
+      <ul className="space-y-2">
+        {menuItems.map((item) => (
+          <li key={item.path}>
+            <Link
+              to={item.path}
+              className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${
+                isActive(item.path)
+                  ? 'bg-indigo-700 text-white'
+                  : 'text-indigo-100 hover:bg-indigo-700'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span>{item.label}</span>
+              {item.badge && (
+                <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</div>
+
   );
 };
 

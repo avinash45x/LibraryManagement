@@ -289,7 +289,7 @@ const AdminMessages = () => {
                       <>
                         <button
                           onClick={() => handleRequestAction(request._id, 'approved')}
-                          className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-green-700 transition-colors"
                         >
                           Approve {request.purpose == "reserve" && <span>reserve</span>}
                         </button>
@@ -307,13 +307,7 @@ const AdminMessages = () => {
                           onClick={() => handleReturnAction(request._id, 'returned')}
                           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                         >
-                          Mark Returned
-                        </button>
-                        <button
-                          onClick={() => handleReturnAction(request._id, 'overdue')}
-                          className="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
-                        >
-                          Impose Fine
+                          Mark as returned
                         </button>
                       </>
                     )}
