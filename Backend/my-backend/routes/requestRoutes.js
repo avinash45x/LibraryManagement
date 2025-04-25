@@ -53,6 +53,42 @@ router.post('/', async (req, res) => {
     });
   }
 });
+router.post('/res', async (req, res) => {
+  try {
+    const newRequest = new BookRequest({
+      userId: req.body.userId,
+      bookId: req.body.bookId,
+      userName: req.body.userName,
+      userEmail: req.body.userEmail,
+      bookTitle: req.body.bookTitle,
+      borrowDays: req.body.borrowDays || 1,
+      purpose: req.body.purpose || 'No purpose specified',
+      status: 'pending',
+      requestDate: new Date()
+    });
+    const savedRequest = await newRequest.save();
+
+    // Create notification for admin
+    const notification = new Notification({
+      userId: 'admin',
+      message: `New Reserve request for "${req.body.bookTitle}"`,
+      type: 'info'
+    });
+    await notification.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Request created successfully',
+      request: savedRequest
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create request',
+      error: error.message
+    });
+  }
+});
 
 // Update request status (approve/reject)
 router.put('/:requestId', async (req, res) => {

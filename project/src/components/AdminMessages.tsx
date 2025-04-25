@@ -253,7 +253,7 @@ const AdminMessages = () => {
                     <h2 className="text-xl font-semibold text-gray-900">{request.bookTitle}</h2>
                     <p className="text-gray-600">Requested by: {request.userName}</p>
                     <p className="text-gray-600">Email: {request.userEmail}</p>
-                    <p className="text-gray-600">Borrow Days: {request.borrowDays}</p>
+                    {request.purpose != "reserve" && <p className="text-gray-600">Borrow Days: {request.borrowDays}</p>}
                     <p className="text-gray-600">Purpose: {request.purpose}</p>
                     <p className="text-gray-600">
                       Request Date: {new Date(request.requestDate).toLocaleDateString()}
@@ -291,13 +291,13 @@ const AdminMessages = () => {
                           onClick={() => handleRequestAction(request._id, 'approved')}
                           className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                         >
-                          Approve
+                          Approve {request.purpose == "reserve" && <span>reserve</span>}
                         </button>
                         <button
                           onClick={() => handleRequestAction(request._id, 'rejected')}
                           className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                         >
-                          Reject
+                          Reject {request.purpose == "reserve" && <span>reserve</span>}
                         </button>
                       </>
                     )}

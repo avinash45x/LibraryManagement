@@ -7,6 +7,7 @@ interface BorrowHistory {
   title: string;
   borrowDate: string;
   dueDate: string;
+  purpose: string
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -21,6 +22,7 @@ const MyAccount = () => {
         const userId = localStorage.getItem('studentId');
         const response = await fetch(`http://localhost:5000/api/requests/userrequests/${userId}`);
         const data = await response.json();
+        console.log("Aditya");
         console.log(data);
         if (!response.ok) throw new Error(data.error);
         
@@ -34,7 +36,8 @@ const MyAccount = () => {
           title: request.bookTitle,
           borrowDate: new Date(request.requestDate).toISOString().split('T')[0],
           dueDate: new Date(new Date(request.requestDate).getTime() + request.borrowDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: request.status
+          status: request.status,
+          purpose: request.purpose
         })));
       } catch (err: any) {
         setError(err.message);
@@ -48,16 +51,6 @@ const MyAccount = () => {
     const interval = setInterval(fetchBorrowHistory, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const fines = [
-    {
-      id: 1,
-      title: 'Late Return: The Lean Startup',
-      amount: 5.00,
-      date: '2024-02-28',
-      status: 'Unpaid',
-    },
-  ];
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -87,6 +80,7 @@ const MyAccount = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {borrowingHistory.map((item) => (
                     <tr key={item.id}>
+                
                       <td className="px-6 py-4 whitespace-nowrap">{item.title}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{item.borrowDate}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{item.dueDate}</td>
@@ -113,38 +107,57 @@ const MyAccount = () => {
             </div>
           </div>
 
+        
+        </div>
+        <div className="grid gap-8 mt-10">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center mb-4">
-              <AlertCircle className="w-6 h-6 text-indigo-600 mr-2" />
-              <h2 className="text-xl font-semibold">Fines</h2>
+              <BookOpen className="w-6 h-6 text-indigo-600 mr-2" />
+              <h2 className="text-xl font-semibold">Recent Reserve History</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Title</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reserve Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {fines.map((fine) => (
-                    <tr key={fine.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{fine.title}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">${fine.amount.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{fine.date}</td>
+                  {borrowingHistory.map((item) => (
+                    <tr key={item.id}>
+                      {item.purpose == "reserve" && 
+<div>
+
+                      <td className="px-6 py-4 whitespace-nowrap">{item.title}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{item.dueDate}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-                          {fine.status}
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                         </span>
                       </td>
+                            </div>
+                        }
                     </tr>
                   ))}
+                  {borrowingHistory.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                        No borrowing history found
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
+
+        
         </div>
       </div>
     </div>

@@ -65,7 +65,7 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
       if (data.success) {
         onClose();
         alert('Request sent successfully!');
-        navigate('/student/messages');
+        
       } else {
         throw new Error(data.message || 'Failed to send request');
       }
@@ -162,6 +162,87 @@ const BorrowDialog: React.FC<BorrowDialogProps> = ({ book, onClose }) => {
   );
 };
 
+const ReserveDialog: React.FC = ({ book, onClose } :any) => {
+  const navigate = useNavigate();
+  const [borrowDays, setBorrowDays] = useState('1');
+  const [purpose, setPurpose] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const currentDate = new Date();
+  const dueDate = addDays(currentDate, parseInt(borrowDays));
+
+  const handleSendRequest = async () => {
+    try {
+      setIsSubmitting(true);
+      console.log(localStorage.getItem('studentId'))
+      const requestData = {
+        bookId: book._id,
+        userId: localStorage.getItem('studentId'),
+        userName: localStorage.getItem('studentFirstName'),
+        userEmail: localStorage.getItem('studentEmail'),
+        bookTitle: book.title,
+        borrowDays: parseInt(borrowDays),
+        purpose: 'reserve'
+      };
+
+      console.log('Sending request data:', requestData);
+
+      const response = await fetch('http://localhost:5000/api/requests/res', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('Server response:', data);
+        throw new Error(data.message || 'Failed to send request');
+      }
+
+      if (data.success) {
+        onClose();
+        alert('Request sent successfully!');
+       
+      } else {
+        throw new Error(data.message || 'Failed to send request');
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert(error.message || 'Failed to send request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h2 className="text-xl font-semibold text-gray-800">Confirm Action</h2>
+        <p className="mt-2 text-gray-600">Are you sure you want to send this request?</p>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSendRequest}
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed min-w-[120px] transition"
+          >
+            {isSubmitting ? 'Sending...' : 'Send Request'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BookCatalog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -169,6 +250,7 @@ const BookCatalog = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
+  const [borrow, isborrows] = useState<"b" | "r" | "n">("n");
   const navigate = useNavigate();
 
   const categories = [
@@ -292,8 +374,19 @@ useEffect(() => {
     console.log('Borrowing book:', book);
     if (book.status === 'available' && book.count > 0) {
       setSelectedBook(book);
+      isborrows("b");
     } else {
       alert('This book is not available for borrowing.');
+    }
+  };
+  
+  const handleReserve = (book: Book) => {
+    console.log('Reserving book:', book);
+    if (book.count == 0) {
+      setSelectedBook(book);
+      isborrows("r");
+    } else {
+      alert('This book is not available for reserving.');
     }
   };
 
@@ -303,6 +396,8 @@ useEffect(() => {
         book._id === bookId ? { ...book, status: 'not available' } : book
       )
     );
+
+  
     
     const borrowEvent = new CustomEvent('bookBorrowed', {
       detail: { bookId }
@@ -429,14 +524,10 @@ useEffect(() => {
                   </button>
                   <button
                     onClick={() => {
-                      if (book.status !== 'available' || book.count <= 0) {
-                        alert('This book is not available for reserving. Please check back later.');
-                        return;
-                      }
-                      // Add reserve functionality here
+                      handleReserve(book);
                     }}
                     className={`px-4 py-2 border rounded transition-colors ${
-                      book.status === 'available' && book.count > 0
+                      book.status === 'not available' && book.count == 0
                         ? 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'
                         : 'border-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
@@ -489,13 +580,21 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Borrow Dialog */}
-        {selectedBook && (
-          <BorrowDialog
-            book={selectedBook}
-            onClose={() => onDialogClosed()}
-          />
-        )}
+       {/* Borrow/Reserve Dialog */}
+{selectedBook && borrow !== 'n' && (
+  borrow === 'b' ? (
+    <BorrowDialog
+      book={selectedBook}
+      onClose={() => onDialogClosed()}
+    />
+  ) : borrow === 'r' ? (
+    <ReserveDialog
+      book={selectedBook}
+      onClose={() => onDialogClosed()}
+    />
+  ) : null
+)}
+
       </div>
     </div>
   );
